@@ -32,6 +32,21 @@ class Kine extends THREE.Object3D {
         }
 
     }
+    
+    get jacobian() {
+        
+    }
+    
+    get endEffectorTransform() {
+        
+        var result = new THREE.Matrix4();
+        for (var i = 0; i < this.components.length; i++) {
+            var comp = this.components[i];
+            result.multiply(comp.transformationMatrix);
+        }
+        return result;
+        
+    }
 
 }
 
@@ -48,11 +63,11 @@ Kine.prototype.addComponent = function (comp) {
 
     if (comp instanceof Joint) {
         this.joints.push(comp);
-         this.numDOF++;
+        this.numDOF++;
     } else if (comp instanceof Link) {
         this.links.push(comp);
     }
-    
+
     this.components.push(comp);
 
 };
@@ -60,8 +75,9 @@ Kine.prototype.addComponent = function (comp) {
 
 class KineComponent extends THREE.Object3D {
 
-    constructor() {
+    constructor(name) {
         super();
+        this.name = name;
         this._prev = undefined;
         this._next = undefined;
     }
@@ -81,7 +97,7 @@ class KineComponent extends THREE.Object3D {
     get prev() {
         return this._prev;
     }
-    
+
     get prevLink() {
         var prev = this;
         while ((prev = prev.prev) !== undefined) {
@@ -91,7 +107,7 @@ class KineComponent extends THREE.Object3D {
         }
         return undefined;
     }
-    
+
     get prevJoint() {
         var prev = this;
         while ((prev = prev.prev) !== undefined) {
@@ -101,7 +117,7 @@ class KineComponent extends THREE.Object3D {
         }
         return undefined;
     }
-    
+
     get nextLink() {
         var next = this;
         while ((next = next.next) !== undefined) {
@@ -111,7 +127,7 @@ class KineComponent extends THREE.Object3D {
         }
         return undefined;
     }
-    
+
     get nextJoint() {
         var next = this;
         while ((next = next.next) !== undefined) {
@@ -128,37 +144,46 @@ class KineComponent extends THREE.Object3D {
 //##########################################################################
 class Link extends KineComponent {
 
-    constructor(relPos) {
-        super();
-        this._relPos = relPos;
-        this.transformMationMatrix = new THREE.Matrix4().setPosition(relPos);
-        
-        this.position.copy(relPos);
-        
-    }
+    constructor(name, transformationMatrix, curve) {
+        super(name);
+        this.matrix.copy(transformationMatrix);
+ 
+        this.position.setFromMatrixPosition(transformationMatrix);
+        this.quaternion.setFromRotationMatrix(transformationMatrix);
 
-    get relPos() {
-        return this._relPos;
-    }
+        var tubularSegments = 15, radius = 0.1, radiusSegments = 10;
+        {
+            var mesh = new THREE.Mesh(new THREE.TubeBufferGeometry(curve, tubularSegments, radius, radiusSegments, false), new THREE.MeshBasicMaterial({color: 0x0000ff}));
+            mesh.applyMatrix(new THREE.Matrix4().getInverse(transformationMatrix));
+            this.add(mesh);
+        }
 
+        {
+            var mesh = new THREE.Mesh(new THREE.TubeBufferGeometry(curve, tubularSegments, radius, radiusSegments, false), new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true}));
+            mesh.applyMatrix(new THREE.Matrix4().getInverse(transformationMatrix));
+            this.add(mesh);
+        }
+
+    }
+    
+    get transformationMatrix() {
+        return this.matrix;
+    }
+    
 }
 
 
 //##########################################################################
 class Joint extends KineComponent {
 
-    constructor(axis, limit) {
-        super();
-        this._axis = axis;
-        this._jointValue = 0;
+    constructor(name, axis, limit) {
+        super(name);
+        this.axis = axis;
         this.limit = limit;
+        this._jointValue = (limit.max + limit.min) / 2;
         var axisHelper = new THREE.AxisHelper(1);
         this.add(axisHelper);
         this.changeCallbacks = [];
-    }
-
-    get axis() {
-        return this._axis;
     }
 
     get jointValue() {
@@ -177,8 +202,9 @@ class Joint extends KineComponent {
 //##########################################################################
 class RevoluteJoint extends Joint {
 
-    constructor(axis, limit) {
-        super(axis, limit);
+    constructor(name, axis, limit) {
+        super(name, axis, limit);
+        this.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.axis, THREE.Math.degToRad(this.jointValue)));
     }
 
     get jointValue() {
@@ -189,6 +215,10 @@ class RevoluteJoint extends Joint {
         super.jointValue = val;
         this.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.axis, THREE.Math.degToRad(val)));
     }
+    
+    get transformationMatrix() {
+        return new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(this.axis, THREE.Math.degToRad(this.jointValue)));
+    }
 
 }
 
@@ -196,8 +226,9 @@ class RevoluteJoint extends Joint {
 //##########################################################################
 class PrismaticJoint extends Joint {
 
-    constructor(axis, limit) {
-        super(axis, limit);
+    constructor(name, axis, limit) {
+        super(name, axis, limit);
+        this.position.copy(new THREE.Vector3().copy(this.axis).multiplyScalar(this.jointValue));
     }
 
     get jointValue() {
@@ -207,6 +238,10 @@ class PrismaticJoint extends Joint {
     set jointValue(val) {
         super.jointValue = val;
         this.position.copy(new THREE.Vector3().copy(this.axis).multiplyScalar(val));
+    }
+    
+    get transformationMatrix() {
+        return new THREE.Matrix4().setPosition(new THREE.Vector3().copy(this.axis).multiplyScalar(this.jointValue));
     }
 
 }
