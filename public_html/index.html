@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>DH viewer</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+    </head>
+    <body>
+
+        <script src="js/dat.gui.min.js"></script>
+        
+        <script src="js/three/three.min.js"></script>
+        <script src="js/three/controls/OrbitControls.js"></script>
+        
+        <script src="js/dh/KineScene.js"></script>
+        <script src="js/dh/Kine.js"></script>
+
+        <script>
+
+            document.addEventListener("DOMContentLoaded", function (event) {
+                var scene = new KineScene();
+                scene.init();
+            });
+
+
+        </script>
+
+    </body>
+</html>
