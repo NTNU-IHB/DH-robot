@@ -26,7 +26,7 @@ class KineImpl extends Kine {
 
 function joint1() {
 
-    var joint = new RevoluteJoint("j1", new THREE.Vector3(0, 0, 1), {min: -180, max: 180});
+    var joint = new RevoluteJoint("j1", new THREE.Vector3(0, 0, 1), {min: THREE.Math.degToRad(-180), max: THREE.Math.degToRad(180)});
 
     var radius = 0.15, height = 0.3;
     var mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(radius, radius, height, 16, 16, false), new THREE.MeshBasicMaterial({color: 0xff0000}));
@@ -40,7 +40,7 @@ function joint1() {
 
 function link1() {
 
-    var transformMationMatrix = new THREE.Matrix4()
+    var transformationMatrix = new THREE.Matrix4()
             .makeTranslation(0, -0.25, 1.8).multiply(new THREE.Matrix4()
             .makeRotationX(THREE.Math.degToRad(40)));
 
@@ -50,17 +50,17 @@ function link1() {
         new THREE.Vector3(0, -0.25, 0.75),
         new THREE.Vector3(0, 0.25, 1.25),
         new THREE.Vector3(0, 0, 1.5),
-        new THREE.Vector3().setFromMatrixPosition(transformMationMatrix)
+        new THREE.Vector3().setFromMatrixPosition(transformationMatrix)
     ]);
 
-    return new Link("l1", transformMationMatrix, curve);
+    return new Link("l1", transformationMatrix, curve);
 
 }
 
 function joint2() {
 
     var axis = new THREE.Vector3(0, 1, 0);
-    var joint = new RevoluteJoint("j2", axis, {min: -90, max: 20});
+    var joint = new RevoluteJoint("j2", axis, {min: THREE.Math.degToRad(-90), max: THREE.Math.degToRad(20)});
 
     var radius = 0.15, height = 0.25;
     var mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(radius, radius, height, 16, 16, false), new THREE.MeshBasicMaterial({color: 0xff0000}));
@@ -73,7 +73,7 @@ function joint2() {
 
 function link2() {
 
-    var transformMationMatrix = new THREE.Matrix4()
+    var transformationMatrix = new THREE.Matrix4()
             .makeTranslation(1.5, 0, 0).multiply(new THREE.Matrix4()
             .makeRotationX(THREE.Math.degToRad(-60)));
 
@@ -82,15 +82,15 @@ function link2() {
         new THREE.Vector3(0.5, 0, 0),
         new THREE.Vector3(1.25, -0.5, 0),
         new THREE.Vector3(1.5, 0, 0),
-        new THREE.Vector3().setFromMatrixPosition(transformMationMatrix)
+        new THREE.Vector3().setFromMatrixPosition(transformationMatrix)
     ]);
 
-    return new Link("l2", transformMationMatrix, curve);
+    return new Link("l2", transformationMatrix, curve);
 }
 
 function joint3() {
 
-    var joint = new RevoluteJoint("j3", new THREE.Vector3(0, 0, 1), {min: -180, max: 45});
+    var joint = new RevoluteJoint("j3", new THREE.Vector3(0, 0, 1), {min: THREE.Math.degToRad(-180), max: THREE.Math.degToRad(45)});
 
     var radius = 0.15, height = 0.25;
     var mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(radius, radius, height, 16, 16, false), new THREE.MeshBasicMaterial({color: 0xff0000}));
@@ -103,22 +103,22 @@ function joint3() {
 
 function link3() {
 
-    var transformMationMatrix = new THREE.Matrix4()
+    var transformationMatrix = new THREE.Matrix4()
             .makeTranslation(0, 1, 0);
 
     var curve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(0, 0, 0),
         new THREE.Vector3(0, 0.5, 0),
-        new THREE.Vector3().setFromMatrixPosition(transformMationMatrix)
+        new THREE.Vector3().setFromMatrixPosition(transformationMatrix)
     ]);
 
-    return new Link("l3", transformMationMatrix, curve);
+    return new Link("l3", transformationMatrix, curve);
 
 }
 
 function joint4() {
 
-    var joint = new RevoluteJoint("j4", new THREE.Vector3(1, 0, 0), {min: -90, max: 90});
+    var joint = new RevoluteJoint("j4", new THREE.Vector3(1, 0, 0), {min: THREE.Math.degToRad(-90), max: THREE.Math.degToRad(90)});
 
     var radius = 0.15, height = 0.25;
     var mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(radius, radius, height, 16, 16, false), new THREE.MeshBasicMaterial({color: 0xff0000}));
@@ -132,17 +132,17 @@ function joint4() {
 
 function link4() {
 
-    var transformMationMatrix = new THREE.Matrix4()
-            .makeTranslation(1, -0.2, 0.5);
+    var transformationMatrix = new THREE.Matrix4()
+            .makeTranslation(0, 1, 0.5);
 
     var curve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0.5, 0),
-        new THREE.Vector3(0.5, 0.2, 0.4),
-        new THREE.Vector3(0.8, -0.1, 0.5),
-        new THREE.Vector3().setFromMatrixPosition(transformMationMatrix)
+//        new THREE.Vector3(0, 0.5, 0),
+//        new THREE.Vector3(0.5, 0.2, 0.4),
+//        new THREE.Vector3(0.8, -0.1, 0.5),
+        new THREE.Vector3().setFromMatrixPosition(transformationMatrix)
     ]);
 
-    return new Link("l4", transformMationMatrix, curve);
+    return new Link("l4", transformationMatrix, curve);
 
 }

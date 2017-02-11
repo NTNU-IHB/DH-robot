@@ -7,13 +7,23 @@
 
 'use strict';
 
-class KineScene {
+var MODE = {
+    ORBIT: 0,
+    TRANSFORM: 1
+};
+
+class KineScene extends THREE.Scene {
+
+    constructor() {
+        super();
+
+        this.onKeyDown = this.onKeyDown.bind(this);
+    }
 
     init() {
 
         var that = this;
 
-        this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.up.set(0, 0, 1);
         this.camera.position.set(-5, 5, 5);
@@ -23,62 +33,105 @@ class KineScene {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.renderer.domElement);
 
-        var controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-        controls.maxDistance = 500.0;
-        controls.maxPolarAngle = Math.PI * 0.495;
-        controls.target.set(0, 0, 0);
-
         var gridHelper = new THREE.GridHelper(15, 15);
         gridHelper.rotateX(THREE.Math.degToRad(90));
-        this.scene.add(gridHelper);
+        this.add(gridHelper);
 
         this.kine = new KineImpl();
-        this.scene.add(this.kine);
+        this.add(this.kine);
 
         for (let i = 2; i < this.kine.components.length; i++) {
             this.kine.components.visible = false;
         }
-        
-        var end = new THREE.Mesh(new THREE.SphereBufferGeometry(0.25), new THREE.MeshBasicMaterial({color: 0x00ff00, wireframe: false}));
-        this.scene.add(end);
 
+        this.end = new THREE.Mesh(new THREE.SphereBufferGeometry(0.15), new THREE.MeshBasicMaterial({color: 0x00ff00, wireframe: false}));
+        this.add(this.end);
+
+        this.initGUI();
+        this.initControls();
+
+        window.addEventListener('keydown', this.onKeyDown, false);
+
+        var render = () => {
+            requestAnimationFrame(render);
+            that.animate();
+            that.renderer.render(that, that.camera);
+        };
+
+        render();
+
+    }
+
+    animate() {
+        var m = this.kine.computeEndEffectorTransform(this.kine.jointValues);
+        this.end.position.setFromMatrixPosition(m);
+        this.end.quaternion.setFromRotationMatrix(m);
+
+        if (this.mode === MODE.TRANSFORM) {
+            this.transform.updateMatrixWorld();
+            var v = this.transform.getWorldPosition();
+            var e = this.transform.getWorldRotation();
+            var target = [v.x, v.y, v.z, e.x, e.y, e.z];
+            var angles = this.kine.solvePosition(target, this.kine.jointValues);
+            this.kine.jointValues = angles;
+        }
+        
+    }
+
+    initControls() {
+
+        this.orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls.maxDistance = 500.0;
+        this.orbitControls.maxPolarAngle = Math.PI * 0.495;
+        this.orbitControls.target.set(0, 0, 0);
+
+        this.transform = new THREE.AxisHelper(1);
+        this.add(this.transform);
+
+        this.transformControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
+        this.transformControls.setSpace("local");
+        this.transformControls.attach(this.transform);
+        this.add(this.transformControls);
+        this.transformControls.enabled = false;
+        this.transformControls.visible = false;
+
+        this.mode = MODE.ORBIT;
+    }
+
+    initGUI() {
         var jointValues = {};
-        for (var i = 1; i <= this.kine.numDOF; i++) {
-            jointValues['j' + i] = this.kine.joints[i - 1].jointValue;
+        for (let i = 1; i <= this.kine.numDOF; i++) {
+            let id = 'j' + i;
+            var j = this.kine.joints[i - 1];
+            jointValues[id] = THREE.Math.radToDeg(j.jointValue);
+            j.changeCallbacks.push((val) => jointValues[id] = THREE.Math.radToDeg(val));
         }
         var gui = new dat.GUI();
         var jointValuesFolder = gui.addFolder('JointValues');
         for (var i = 1; i <= this.kine.numDOF; i++) {
             let joint = this.kine.joints[i - 1];
             var limit = joint.limit;
-            var j = jointValuesFolder.add(jointValues, 'j' + i, limit.min, limit.max);
+            var j = jointValuesFolder.add(jointValues, 'j' + i, THREE.Math.radToDeg(limit.min), THREE.Math.radToDeg(limit.max));
             j.onChange((value) => {
-                joint.jointValue = value;
+                joint.jointValue = THREE.Math.degToRad(value);
             });
+            j.listen();
         }
         jointValuesFolder.open();
+    }
 
+    onKeyDown(evt) {
 
-
-        window.addEventListener('keydown', evt => {
-            
-            var keycode = evt.which;
-            if (keycode >= 49 && keycode <= 49+3) {
-                that.changeVisibility(keycode-48);
-            }
-
-        }, false);
-
-        var render = () => {
-            requestAnimationFrame(render);
-            var m = that.kine.computeEndEffectorTransform();
-            end.position.setFromMatrixPosition(m);
-            end.quaternion.setFromRotationMatrix(m);
-            that.renderer.render(that.scene, that.camera);
-        };
-
-        render();
-
+        var keycode = evt.which;
+        if (keycode >= 49 && keycode <= 49 + 3) {
+            this.changeVisibility(keycode - 48);
+        } else if (keycode === 81) { //q
+            this.switchControls();
+        } else if (keycode === 87) { //w
+            this.transformControls.setMode("translate");
+        } else if (keycode === 82) { //r
+            this.transformControls.setMode("rotate");
+        }
     }
 
     changeVisibility(n) {
@@ -90,11 +143,34 @@ class KineScene {
         }
 
         for (var i = n; i < this.kine.joints.length; i++) {
-             var j = this.kine.joints[i];
+            var j = this.kine.joints[i];
             j.visible = false;
             j.nextLink.visible = false;
         }
 
+    }
+
+    switchControls() {
+        if (this.mode === MODE.ORBIT) { //from orbit to transform
+
+            this.transformControls.visible = true;
+            this.transformControls.enabled = true;
+            this.orbitControls.enabled = false;
+
+            var m = this.kine.computeEndEffectorTransform(this.kine.jointValues);
+            this.transform.position.setFromMatrixPosition(m);
+            this.transform.quaternion.setFromRotationMatrix(m);
+            this.transformControls.update();
+
+            this.mode = MODE.TRANSFORM;
+        } else if (this.mode === MODE.TRANSFORM) { //from transform to orbit
+
+            this.transformControls.visible = false;
+            this.transformControls.enabled = false;
+            this.orbitControls.enabled = true;
+
+            this.mode = MODE.ORBIT;
+        }
     }
 
 }

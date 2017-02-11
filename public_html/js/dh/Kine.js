@@ -15,6 +15,7 @@ class Kine extends THREE.Object3D {
         this.components = [];
         this.links = [];
         this.joints = [];
+
     }
 
     get jointValues() {
@@ -27,7 +28,7 @@ class Kine extends THREE.Object3D {
 
     set jointValues(values) {
 
-        for (var i = 0; i < this.numDOF; i++) {
+        for (let i = 0; i < this.numDOF; i++) {
             this.joints[i].jointValue = values[i];
         }
 
@@ -35,13 +36,9 @@ class Kine extends THREE.Object3D {
 
     computeJacobian(values, full) {
 
-        var EPS = 1E-4;
-        var m = new THREE.Matrix4();
+        var EPS = 1E-6;
         var p1 = new THREE.Vector3(), p2 = new THREE.Vector3();
-        var e1 = new THREE.Euler(), e2 = new THREE.Euler();
-
-        values = values || this.jointValues;
-        full = full === true;
+        var e1 = undefined, e2 = undefined;
 
         var rows = full ? 6 : 3;
         var cols = values.length;
@@ -51,10 +48,10 @@ class Kine extends THREE.Object3D {
             J.push(Array(cols));
         }
 
-        this.computeEndEffectorTransform(values, m);
+        var m = this.computeEndEffectorTransform(values);
         p1.setFromMatrixPosition(m);
         if (full === true) {
-            e1.setFromRotationMatrix(m);
+            e1 = new THREE.Euler().setFromRotationMatrix(m);
         }
 
         for (let i = 0; i < values.length; i++) {
@@ -62,18 +59,18 @@ class Kine extends THREE.Object3D {
             var vals = values.slice();
             vals[i] += EPS;
 
-            this.computeEndEffectorTransform(vals, m);
+            m = this.computeEndEffectorTransform(vals);
             p2.setFromMatrixPosition(m);
-            if (full === true) {
-                e2.setFromRotationMatrix(m);
-            }
 
             J[0][i] = (p2.x - p1.x) / EPS;
             J[1][i] = (p2.y - p1.y) / EPS;
             J[2][i] = (p2.z - p1.z) / EPS;
 
-
             if (full === true) {
+                if (e2 === undefined) {
+                    e2 = new THREE.Euler();
+                }
+                e2.setFromRotationMatrix(m);
                 J[3][i] = (e2.x - e1.x) / EPS;
                 J[4][i] = (e2.y - e1.y) / EPS;
                 J[5][i] = (e2.z - e1.z) / EPS;
@@ -87,20 +84,20 @@ class Kine extends THREE.Object3D {
 
     solveVelocity(target, values) {
 
+        var lambda = 0.1;
         var full = target.length === 6;
-        var lambdaPow2 = 0.1 * 0.1;
 
         var j = this.computeJacobian(values, full);
         var jt = numeric.transpose(j);
         var eye = numeric.identity(full ? 6 : 3);
         var jjt = numeric.dot(j, jt);
-        var plus = numeric.mul(eye, lambdaPow2);
+        var plus = numeric.mul(eye, lambda * lambda);
         var inv = numeric.dot(jt, numeric.inv(numeric.add(jjt, plus)));
 
         var vel = numeric.dot(inv, target);
 
         var result = [];
-        for (var i = 0; i < vel.length; i++) {
+        for (var i = 0; i < values.length; i++) {
             result[i] = vel[i][0];
         }
         return result;
@@ -110,33 +107,34 @@ class Kine extends THREE.Object3D {
     solvePosition(target, values) {
 
         var that = this;
-        var m = new THREE.Matrix4();
+        var full = target.length === 6;
         var p = new THREE.Vector3();
         var e = undefined;
 
-        values = values || that.jointValues;
-
         var newValues = values.slice();
-        for (var i = 0; i < 10; i++) {
-            that.computeEndEffectorTransform(newValues, m);
+        for (var i = 0; i < 1000; i++) {
+            var m = that.computeEndEffectorTransform(newValues);
             p.setFromMatrixPosition(m);
 
             var dX;
-            if (target.length === 3) {
+            if (full === false) {
                 dX = [[target[0] - p.x], [target[1] - p.y], [target[2] - p.z]];
             } else {
                 if (e === undefined) {
                     e = new THREE.Euler();
                 }
                 e.setFromRotationMatrix(m);
-                dX = [[target[0] - p.x], [target[1] - p.y], [target[2] - p.z],
-                    [THREE.Math.degToRad(target[3]) - e.x], [THREE.Math.degToRad(target[4]) - e.y], [THREE.Math.degToRad(target[5]) - e.z]];
+                dX = [
+                    [target[0] - p.x], [target[1] - p.y], [target[2] - p.z],
+                    [target[3] - e.x], [target[4] - e.y], [target[5] - e.z]
+                ];
             }
 
+
             var vel = that.solveVelocity(dX, newValues);
-            for (var k = 0; k < vel.length; k++) {
-                var lim = that.joints[k].limit;
-                var newVal = newValues[k] + vel[k];
+            for (let k = 0; k < this.numDOF; k++) {
+                let lim = that.joints[k].limit;
+                let newVal = newValues[k] + vel[k];
                 if (lim.min > newVal) {
                     newVal = lim.min;
                 } else if (lim.max < newVal) {
@@ -170,20 +168,20 @@ class Kine extends THREE.Object3D {
 
     }
 
-    computeEndEffectorTransform(values, store) {
-        values = values || this.jointValues;
-        store = store || new THREE.Matrix4();
+    computeEndEffectorTransform(values) {
 
+
+        var result = new THREE.Matrix4();
         for (var i = 0, j = 0; i < this.components.length; i++) {
             var comp = this.components[i];
             if (comp instanceof Joint) {
-                store.multiply(comp.getTransformationMatrix(values[j++]));
+                result.multiply(comp.getTransformationMatrix(values[j++]));
             } else {
-                store.multiply(comp.getTransformationMatrix());
+                result.multiply(comp.getTransformationMatrix());
             }
         }
 
-        return store;
+        return result;
     }
 
 }
@@ -261,28 +259,38 @@ class Link extends KineComponent {
 
     constructor(name, transformationMatrix, curve) {
         super(name);
-        this.matrix.copy(transformationMatrix);
+        this.transformationMatrix = transformationMatrix;
+        var inv = new THREE.Matrix4().getInverse(transformationMatrix);
 
         this.position.setFromMatrixPosition(transformationMatrix);
         this.quaternion.setFromRotationMatrix(transformationMatrix);
 
+
+        if (curve === undefined) {
+            curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3().setFromMatrixPosition(transformationMatrix)
+            ]);
+        }
+
         var tubularSegments = 15, radius = 0.1, radiusSegments = 10;
         {
             var mesh = new THREE.Mesh(new THREE.TubeBufferGeometry(curve, tubularSegments, radius, radiusSegments, false), new THREE.MeshBasicMaterial({color: 0x0000ff}));
-            mesh.applyMatrix(new THREE.Matrix4().getInverse(transformationMatrix));
+            mesh.applyMatrix(inv);
             this.add(mesh);
         }
 
         {
             var mesh = new THREE.Mesh(new THREE.TubeBufferGeometry(curve, tubularSegments, radius, radiusSegments, false), new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true}));
-            mesh.applyMatrix(new THREE.Matrix4().getInverse(transformationMatrix));
+            mesh.applyMatrix(inv);
             this.add(mesh);
         }
+
 
     }
 
     getTransformationMatrix() {
-        return this.matrix;
+        return this.transformationMatrix;
     }
 
 }
@@ -308,7 +316,7 @@ class Joint extends KineComponent {
     set jointValue(val) {
         this._jointValue = val;
         for (var i = 0; i < this.changeCallbacks.length; i++) {
-            this.changeCallbacks[i]();
+            this.changeCallbacks[i](val);
         }
     }
 
@@ -319,7 +327,7 @@ class RevoluteJoint extends Joint {
 
     constructor(name, axis, limit) {
         super(name, axis, limit);
-        this.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.axis, THREE.Math.degToRad(this.jointValue)));
+        this.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.axis, this.jointValue));
     }
 
     get jointValue() {
@@ -328,12 +336,11 @@ class RevoluteJoint extends Joint {
 
     set jointValue(val) {
         super.jointValue = val;
-        this.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.axis, THREE.Math.degToRad(val)));
+        this.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.axis, val));
     }
 
     getTransformationMatrix(value) {
-        value = value || this.jointValue;
-        return new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(this.axis, THREE.Math.degToRad(value)));
+        return new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(this.axis, value));
     }
 
 }
