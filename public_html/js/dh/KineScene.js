@@ -14,9 +14,10 @@ var MODE = {
 
 class KineScene extends THREE.Scene {
 
-    constructor() {
+    constructor(container) {
         super();
 
+        this.container = container;
         this.onKeyDown = this.onKeyDown.bind(this);
     }
 
@@ -24,14 +25,14 @@ class KineScene extends THREE.Scene {
 
         var that = this;
 
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(75, that.container.offsetWidth / that.container.offsetHeight, 0.1, 1000);
         this.camera.up.set(0, 0, 1);
         this.camera.position.set(-5, 5, 5);
 
         this.renderer = new THREE.WebGLRenderer({antialias: true});
         this.renderer.setClearColor(new THREE.Color(0.9, 0.9, 0.9));
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(this.renderer.domElement);
+        this.renderer.setSize(that.container.offsetWidth, that.container.offsetHeight);
+        that.container.appendChild(this.renderer.domElement);
 
         var gridHelper = new THREE.GridHelper(15, 15);
         gridHelper.rotateX(THREE.Math.degToRad(90));
@@ -51,6 +52,12 @@ class KineScene extends THREE.Scene {
         this.initControls();
 
         window.addEventListener('keydown', this.onKeyDown, false);
+
+        window.addEventListener('resize', function () {
+            that.camera.aspect = that.container.offsetWidth / that.container.offsetHeight;
+            that.camera.updateProjectionMatrix();
+            that.renderer.setSize(that.container.offsetWidth, that.container.offsetHeight);
+        }, false);
 
         var render = () => {
             requestAnimationFrame(render);
@@ -75,7 +82,7 @@ class KineScene extends THREE.Scene {
             var angles = this.kine.solvePosition(target, this.kine.jointValues);
             this.kine.jointValues = angles;
         }
-        
+
     }
 
     initControls() {
@@ -106,7 +113,8 @@ class KineScene extends THREE.Scene {
             jointValues[id] = THREE.Math.radToDeg(j.jointValue);
             j.changeCallbacks.push((val) => jointValues[id] = THREE.Math.radToDeg(val));
         }
-        var gui = new dat.GUI();
+        var gui = new dat.GUI({autoplace: false});
+        document.getElementById('gui').appendChild(gui.domElement);
         var jointValuesFolder = gui.addFolder('JointValues');
         for (var i = 1; i <= this.kine.numDOF; i++) {
             let joint = this.kine.joints[i - 1];
@@ -128,9 +136,15 @@ class KineScene extends THREE.Scene {
         } else if (keycode === 81) { //q
             this.switchControls();
         } else if (keycode === 87) { //w
-            this.transformControls.setMode("translate");
+
         } else if (keycode === 82) { //r
-            this.transformControls.setMode("rotate");
+            if (this.mode === MODE.TRANSFORM) {
+                if (this.transformControls.getMode() === "translate") {
+                    this.transformControls.setMode("rotate");
+                } else {
+                    this.transformControls.setMode("translate");
+                }
+            }
         }
     }
 

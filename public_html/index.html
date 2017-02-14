@@ -13,13 +13,47 @@ and open the template in the editor.
     </head>
     <body>
 
+        <header id="header">
+            <div class="innertube">
+                <p>DH robot </p>
+                <div id="info2">
+                          <p> 
+                                Press 'q' to enter IK mode. Move the target to a desired position, then press 'q' to return to joint by joint mode.
+                                While in IK mode switch between setting desired rotation and translation by pressing 'r'.
+                            </p>
+                     </div>
+            </div>
+        </header>
+        <main>
+            <div class="innertube">
+                <div id="canvas">
+                     <div id="gui"></div>
+                    <div id="info">
+                        <span style='color:#ff0000'>Red:</span> X-Axis
+                        <br>
+                        <span style='color:#00ff00'>Green:</span> Y-Axis
+                        <br>
+                        <span style='color:#0000ff'>Blue:</span> Z-Axis
+                    </div>
+                     
+                </div>
+            </div>
+        </main>
+
+        <footer id="footer">
+            <div class="innertube">
+                <p>&copy; 2017 NTNU Ålesund, contact: Lars Ivar Hatledal </p>
+            </div>
+        </footer>
+
+
         <script src="js/dat.gui.min.js"></script>
         <script src="js/numeric-1.2.6.min.js"></script>
-        
+
         <script src="js/three/three.min.js"></script>
         <script src="js/three/controls/OrbitControls.js"></script>
         <script src="js/three/controls/TransformControls.js"></script>
-        
+
         <script src="js/dh/KineScene.js"></script>
         <script src="js/dh/Kine.js"></script>
         <script src="js/dh/KineImpl.js"></script>
@@ -28,7 +62,7 @@ and open the template in the editor.
         <script>
 
             document.addEventListener("DOMContentLoaded", function (event) {
-                var scene = new KineScene();
+                var scene = new KineScene(document.getElementById('canvas'));
                 scene.init();
             });
 
