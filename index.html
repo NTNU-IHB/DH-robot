@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset=utf-8>
+        <title>DH</title>
+		
+		<style>
+		
+			body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+				height: 100%; 
+				max-height: 100%; 
+				font-family:Sans-serif;
+				line-height: 1.5em;
+			}
+
+			main {
+				position: fixed;
+				top: 50px; /* Set this to the height of the header */
+				bottom: 50px; /* Set this to the height of the footer */
+				left: 50px; 
+				right: 0;
+				overflow: auto; 
+				background: #fff;
+			}
+
+			#header {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 50px; 
+				overflow: hidden; /* Disables scrollbars on the header frame. To enable scrollbars, change "hidden" to "scroll" */
+				background: #BCCE98;
+			}
+
+			#footer {
+				position: absolute;
+				left: 0;
+				bottom: 0;
+				width: 100%;
+				height: 50px; 
+				overflow: hidden; /* Disables scrollbars on the footer frame. To enable scrollbars, change "hidden" to "scroll" */
+				background: #BCCE98;
+			}
+
+			#dhbody {
+				width: 35%;
+				overflow: auto;
+			}
+
+			#canvas {
+				position: absolute;
+				top: 0px; 
+				right: 0px; 
+				width: 62.5%;
+				height: 95%; 
+				overflow: hidden; 
+			}
+
+			#info {
+				position: absolute;
+				top: 10px;
+				left: 10px;
+				padding: 5px;
+			}
+
+			#info2 {
+				position: absolute;
+				left: 20%;
+				width: 50%;
+			}
+
+			#gui {
+				position:absolute;
+				bottom: 0px;
+				right: -10px;
+			}
+
+			.innertube {
+				margin: 15px; /* Provides padding for the content */
+			}
+
+			p {
+				color: #555;
+			}
+
+			/*IE6 fix*/
+			* html body{
+				padding: 50px 0 50px 230px; /* Set the first value to the height of the header, the third value to the height of the footer, and last value to the width of the nav */
+			}
+
+			* html main{ 
+				height: 100%; 
+				width: 100%; 
+			}
+
+			table.GeneratedTable {
+				width:100%;
+				background-color:#FFFFFF;
+				border-collapse:collapse;border-width:1px;
+				border-color:#336600;
+				border-style:solid;
+				color:#009900;
+			}
+
+			table.GeneratedTable td, table.GeneratedTable th {
+				border-width:1px;
+				border-color:#336600;
+				border-style:solid;
+				padding:3px;
+			}
+
+			table.GeneratedTable thead {
+				background-color:#CCFF99;
+			}
+
+			button {
+				margin-top: 10px;
+				margin-right: 10px;
+			}
+
+			label {
+				display: block;
+				margin: 30px 0 0 0;
+			}
+			select {
+				float: left;
+				width: 80px;
+			}
+
+			/* Style the buttons that are used to open and close the accordion panel */
+			button.accordion {
+				background-color: #eee;
+				color: #444;
+				cursor: pointer;
+				padding: 5px;
+				width: 95%;
+				text-align: left;
+				border: none;
+				outline: none;
+				transition: 0.4s;
+			}
+
+			/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+			button.accordion.active, button.accordion:hover {
+				background-color: #ddd;
+			}
+
+			/* Style the accordion panel. Note: hidden by default */
+			div.panel {
+				padding: 0 5px;
+				background-color: white;
+				display: none;
+			}
+
+		
+		</style>
+		
+      
+    </head>
+    <body>
+
+        <header id="header">
+            <div class="innertube">
+                <p>DH table visualization </p>
+            </div>
+        </header>
+
+        <main>
+            <div class="innertube">
+                <div id="dhbody">
+                    <h1>DH-Table*:</h1>
+
+                    <!-- HTML Code -->
+                    <table class="GeneratedTable">
+
+                        <thead>
+                            <tr>
+                                <th>Link</th>
+                                <th>&alpha;<sub>i-1</sub></th>
+                                <th>a<sub>i-1</sub></th>
+                                <th>d<sub>i</sub></th>
+                                <th>&theta;<sub>i</sub></th>
+                                <th>type</th>
+                                <th>min</th>
+                                <th>max</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dh">
+                        </tbody>
+                    </table> 
+                    <div><small>*As in the teaching materials, we are using the 
+                            <a href="https://en.wikipedia.org/wiki/Denavit%E2%80%93Hartenberg_parameters" target="_blank">modified DH parameters</a>.
+                        </small>
+                    </div>
+                    <div>
+                        <button id="addRowButton">Add row</button>
+                        <button id="removeRowButton">Remove row</button>
+                        <button id="updateButton">Update</button>
+                        <br>
+                        <div id="exampleButtons"></div>
+                        <hr>
+                    </div>
+
+
+                    <div id="canvas">
+                        <div id="info">
+
+                            <span style='color:#ff0000'>Red:</span> X-Axis
+                            <br>
+                            <span style='color:#00ff00'>Green:</span> Y-Axis
+                            <br>
+                            <span style='color:#0000ff'>Blue:</span> Z-Axis
+
+                        </div>
+                        <div id="info2">
+
+                            <p> 
+                                Press 'q' to enter IK target mode. Move the target to a desired position, then press 'q' again. 
+                                The manipulator will then move to the desired position, if applicable. 
+                            </p>
+
+                        </div>
+                        <div id="gui"></div>
+                    </div>
+
+                    <button class="accordion">Notes on DH parameters</button>
+                    <div class="panel">
+                        <p>
+                            <b>&alpha;<sub>i-1</sub>:</b> Link twist or offset angle 
+                            <small>
+                                (measured from z<sub>i−1</sub> axis to z<sub>i</sub> about the x<sub>i</sub>
+                                axis, again using a right-hand rule. For most commercial
+                                manipulators the offset angles are multiples of 90&deg;)
+                            </small> 
+                            <br>
+                            <b>a<sub>i-1</sub>:</b> Link length 
+                            <small>
+                                (the shortest distance between z<sub>i−1</sub> and z<sub>i</sub> axes. It is measured as the distance along the direction 
+                                of x<sub>i</sub> coordinate frame. For intersecting joint axes the value of a<sub>i</sub> is zero. 
+                                It has no meaning for prismatic joints and is set to zero in this case)
+                            </small>
+                            <br>
+                            <b>d<sub>i</sub>:</b> Link offset 
+                            <small>
+                                (distance from the x<sub>i−1</sub> to the x<sub>i</sub> axis measured along the z<sub>i−1</sub> axis. 
+                                If the joint is prismatic, d<sub>i</sub> is the joint variable. 
+                                In the case of a revolute joint, it is a constant or zero)
+                            </small>
+                            <br>
+                            <b>&theta;<sub>i</sub>:</b> Joint angle 
+                            <small>
+                                (the angle from the x<sub>i−1</sub> to the x<sub>i</sub> axis measured about z<sub>i−1</sub>
+                                axis. This is defined using a right-hand rule since both x<sub>i−1</sub>
+                                and xi are perpendicular to z<sub>i−1</sub>. The direction of rotation is positive if
+                                the cross product of x<sub>i−1</sub>
+                                and xi defines the z<sub>i−1</sub>
+                                axis. &theta;<sub>i</sub> is the
+                                joint variable if the joint i is revolute. 
+                                In the case of a prismatic joint it is a constant or zero)
+                            </small> 
+                            <br>
+                            <b>type:</b> Joint type <small>(revolute, prismatic or fixed)</small>
+                            <br>
+                            <b>min & max:</b> min and max joint value respectably <small>In degrees for revolute joints</small>
+                        </p>
+                    </div>
+                    
+                    <button class="accordion">Notes on FK</button>
+                    <div class="panel">
+                        <p>
+                            Although an important convention within the field of robotics, the DH approach to generate the FK for manipulators 
+                            is far from the only option. Another similar approach is to use screw theory.
+                            <br>
+                            If you are familiar with 3D graphics and/or scene-graphs, a serial manipulator is nothing more than a set of parent/child relationships, 
+                            where the rotation or translation of each child is restricted to zero or one DOF.   
+                            The kinematics of arbitrary manipulators can easily be setup by combining four different transformation matrices. 
+                            That is, rotation about X, Y, Z and pure translation. Using this approach you are free to assign frames however you want, 
+                            and you can define more than just the links and joints contributing to the FK. 
+                            I.e. defining where hydraulic cylinders are attached to the manipulator.
+                            Take a knuckle-boom crane for instance. It is simply R<sub>z</sub>(&theta;<sub>1</sub>) * T<sub>z</sub> * R<sub>y</sub>(&theta;<sub>2</sub>) * T<sub>x</sub> * R<sub>y</sub>(&theta;<sub>3</sub>) * T<sub>x</sub> 
+                            given a right handed coordinate system with z up.
+                        </p>
+                    </div>
+                    
+                    <button class="accordion">Notes on IK</button>
+                    <div class="panel">
+                        <p>
+                            Inverse kinematics (IK) is normally computed using the Jacobian matrix. 
+                            Taking the inverse of this matrix you can solve for joint velocities given a desired Cartesian velocity.
+                            However, regular inverse only works if the matrix is square. This is not the case for many types of manipulators! 
+                            Luckily, algorithms exists which lets you solve the IK using the Jacobian even though the matrix is not square!
+                            A couple of examples is the pseudo-inverse and transpose methods. 
+                            However, you'll probably want to stick with the excellent Damped Least Squared (DLS) method,
+                            which is the method used by this tool. An excellent paper that covers the three previously mentioned methods can be found 
+                            <a href="https://www.math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf" target="_blank">here</a>.
+
+                            <br>
+
+                            Computing the Jacobian for an arbitrary manipulator (or any function) is actually pretty straightforward. 
+                            To compute the (i, k)-th entry of the Jacobian matrix, simply use the the following formula:
+                            <br>
+                        </p>
+                        <div style="width:80%;left:50%"><img src='IK.PNG'></div>
+                        <p>
+                            where p<sub>i</sub>(x) gives the i-th component of the position function, 
+                            x<sub>0,k</sub> + h is simply x<sub>0</sub> with a small delta added to its k-th component,
+                            and h is a reasonable small positive value (say 1E-6).
+                            <br>
+                            <br>
+                            Here, only the position function is considered. Hence, the IK will only be solved with respect to a desired position. 
+                            However, the formula can easily be extended to include orientation of the end-effector. Simply increase the number of 
+                            rows in the Jacobian matrix by three and use the position function for the three first rows, and the rotation (euler angles) for the latter.  
+                            This is only useful if the manipulator is able to rotate the tool in a sufficient manner though. I.e a 6DOF industrial manipulator.
+                            
+                        </p>
+
+                    </div>
+
+
+                </div>
+            </div>
+        </main>	
+
+        <footer id="footer">
+            <div class="innertube">
+                <p>&copy; 2017 NTNU Ålesund, contact: Lars Ivar Hatledal </p>
+            </div>
+        </footer>
+
+		<script type="text/javascript" src="jquery-3.1.1.min.js"></script>
+		<script type="text/javascript" src="numeric-1.2.6.min.js"></script>
+		<script type="text/javascript" src="dat.gui.min.js"></script>
+		<script type="text/javascript" src="Detector.js"></script>
+		<script type="text/javascript" src="three.min.js"></script>
+		<script type="text/javascript" src="OrbitControls.js"></script>
+		<script type="text/javascript" src="TransformControls.js"></script>
+		<script type="text/javascript" src="DHTable.js"></script>
+		<script type="text/javascript" src="Kine.js"></script>
+
+        <script>
+	
+
+            $(document).ready(function () {
+
+                var acc = document.getElementsByClassName("accordion");
+                var i;
+
+                for (i = 0; i < acc.length; i++) {
+                    acc[i].onclick = function () {
+                        /* Toggle between adding and removing the "active" class,
+                         to highlight the button that controls the panel */
+                        this.classList.toggle("active");
+
+                        /* Toggle between hiding and showing the active panel */
+                        var panel = this.nextElementSibling;
+                        if (panel.style.display === "block") {
+                            panel.style.display = "none";
+                        } else {
+                            panel.style.display = "block";
+                        }
+                    }
+                }
+
+                if (!Detector.webgl) {
+                    Detector.addGetWebGLMessage();
+                    document.getElementById('canvas').innerHTML = "";
+                } else {
+                    new Kine(document.getElementById('canvas'), new DHTable());
+                }
+
+            });
+
+        </script>
+    </body>
+</html>
